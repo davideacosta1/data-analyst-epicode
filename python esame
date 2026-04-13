@@ -1,0 +1,88 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+#caricamento dataset
+url = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data.csv"
+df = pd.read_csv(url)
+df.head()
+#1:
+print("Dimensioni dataset:", df.shape)
+df.info()
+df.describe()
+#conversione colonna date 
+df['date'] = pd.to_datetime(df['date'])
+#rimozione righe aggregate
+df_continents = df.dropna(subset=['continent'])
+#2a numero totale casi dall’inizio della pandemia :
+casi_per_continente = df_continents.groupby('continent')['total_cases'].max()
+print(casi_per_continente)
+#2b percentuale rispetto al totale mondiale:
+totale_mondiale = casi_per_continente.sum()
+percentuali = (casi_per_continente / totale_mondiale) * 100
+print(percentuali)
+#grafico percentuali:
+percentuali.sort_values().plot(kind='barh')
+plt.title("Percentuale casi COVID per continente")
+plt.xlabel("Percentuale (%)")
+plt.show()
+#analisi italia 2022:
+italia_2022 = df[
+    (df['location'] == 'Italy') &
+    (df['date'].dt.year == 2022)
+].copy()
+#rimozione giorni senza misurazioni:
+italia_2022 = italia_2022.dropna(subset=['new_cases'])
+#3a l'evoluzione del casi totali dall'inizio alla fine dell'anno:
+plt.figure(figsize=(12,5))
+plt.subplot(1,2,1)
+plt.plot(
+    italia_2022['date'],
+    italia_2022['total_cases']
+)
+plt.title("Evoluzione casi totali Italia 2022")
+plt.xticks(rotation=45)
+#3b il numero di nuovi casi rispetto alla data:
+plt.subplot(1,2,2)
+plt.bar(
+    italia_2022['date'],
+    italia_2022['new_cases']
+)
+plt.title("Nuovi casi giornalieri Italia 2022")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+#4a:
+nazioni = ['Italy', 'Germany', 'France']
+start_date = '2022-05-01'
+end_date = '2023-04-30'
+df_icu = df[
+    (df['location'].isin(nazioni)) &
+    (df['date'].between(start_date, end_date))
+]
+plt.figure(figsize=(10,6))
+sns.boxplot(
+    x='location',
+    y='icu_patients',
+    data=df_icu
+)
+plt.title("Distribuzione pazienti ICU (Mag 2022 - Apr 2023)")
+plt.show()
+#nel grafico possiamo vedere come l'italia ha mantenuto i valori di pazienti in ICU più bassi e costanti del gruppo 
+#la francia e la germania sono simili con mediane simili tra loro ma si differenziano dal fatto che la germania mostra picchi massimi decisamente superiore tra le nazioni 
+#italia,germnia,francia,spagna nel 2021
+nazioni_4 = ['Italy', 'Germany', 'France', 'Spain']
+df_2021 = df[
+    (df['location'].isin(nazioni_4)) &
+    (df['date'].dt.year == 2021)
+]
+#5a: Somma pazienti ospedalizzati:
+somma_ospedalizzati = df_2021.groupby('location')['hosp_patients'].sum()
+print(somma_ospedalizzati)
+somma_ospedalizzati.plot(kind='bar')
+plt.title("Somma pazienti ospedalizzati nel 2021")
+plt.ylabel("Numero pazienti")
+plt.show()
+#5b: Analisi dati nulli:
+nulli = df_2021.groupby('location')['hosp_patients'].apply(lambda x: x.isnull().sum())
+print("Valori mancanti per nazione:")
+print(nulli)
